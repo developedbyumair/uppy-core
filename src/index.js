@@ -12,6 +12,8 @@ import companion from "@uppy/companion";
 import path from "path";
 import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import fs from "fs";
+import os from "os";
 
 dotenv.config();
 
@@ -36,7 +38,15 @@ app.use((req, res, next) => {
   );
   next();
 });
-const uploadsDir = path.join(__dirname, "uploads");
+
+// Create a temporary uploads directory
+const uploadsDir = path.join(os.tmpdir(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+  console.log("Uploads directory created at:", uploadsDir);
+}
+
+console.log(uploadsDir);
 
 // Companion options
 const companionOptions = {
