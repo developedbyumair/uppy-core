@@ -5,7 +5,7 @@
 //   /* eslint-enable no-console */
 // });
 
-import app from "./app.js";
+// import app from "./app.js";
 import express from "express";
 import bodyParser from "body-parser";
 import companion from "@uppy/companion";
