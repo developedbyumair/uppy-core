@@ -70,6 +70,10 @@ const companionOptions = {
   filePath: uploadsDir,
   streamingUpload: true,
   allowLocalUrls: String(process.env.NODE_ENV) === "development",
+  uploadUrls: {
+    // This should point to the temporary uploads directory
+    url: uploadsDir,
+  },
 };
 
 // Initialize Companion
