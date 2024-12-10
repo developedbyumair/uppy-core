@@ -41,21 +41,9 @@ const uploadsDir = path.join(__dirname, "uploads");
 // Companion options
 const companionOptions = {
   providerOptions: {
-    dropbox: {
-      key:
-        process.env.DROPBOX_KEY ||
-        "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
-      secret:
-        process.env.DROPBOX_SECRET ||
-        "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
-    },
     unsplash: {
-      key:
-        process.env.UNSPLASH_KEY ||
-        "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
-      secret:
-        process.env.UNSPLASH_SECRET ||
-        "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
+      key: "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
+      secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
     },
     url: {
       enabled: true,
@@ -63,10 +51,10 @@ const companionOptions = {
     },
   },
   server: {
-    host: process.env.VERCEL_URL || "localhost:5000",
-    protocol: process.env.VERCEL_URL ? "https" : "http",
+    host: "uppy-core.vercel.app",
+    protocol: "https",
   },
-  secret: process.env.COMPANION_SECRET || "676522f38edb8239a1238cc03702dbab",
+  secret: "676522f38edb8239a1238cc03702dbab",
   debug: process.env.NODE_ENV !== "production",
   corsOrigins: true,
   filePath: uploadsDir,
@@ -78,10 +66,6 @@ const companionOptions = {
 const { app: companionApp } = companion.app(companionOptions);
 app.use(companionApp);
 
-// Error handling
-app.use((err, req, res, next) => {
-  console.error("Error:", err);
-  res
-    .status(err.status || 500)
-    .json({ message: err.message || "Internal Server Error" });
-});
+const server = app.listen(5000);
+
+companion.socket(server);
