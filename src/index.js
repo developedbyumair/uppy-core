@@ -15,6 +15,7 @@ import dotenv from "dotenv";
 import fs from "fs";
 import os from "os";
 import request from "request";
+import session from "express-session";
 
 dotenv.config();
 
@@ -38,6 +39,29 @@ app.use((req, res, next) => {
     "Authorization, Origin, Content-Type, Accept"
   );
   next();
+});
+
+// Parse JSON bodies
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Session configuration
+app.use(
+  session({
+    secret: String(process.env.SESSION_SECRET || "session-secret"),
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false, // set to true if using https
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
+
+// Add basic route for testing
+app.get("/health", (req, res) => {
+  res.json({ status: "OK" });
 });
 
 // Create a temporary uploads directory
