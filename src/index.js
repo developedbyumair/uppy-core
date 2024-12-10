@@ -95,10 +95,10 @@ const companionOptions = {
   filePath: uploadsDir,
   streamingUpload: true,
   allowLocalUrls: true,
-  uploadUrls: {
-    // This should point to the temporary uploads directory
-    url: uploadsDir,
-  },
+  // uploadUrls: {
+  //   // This should point to the temporary uploads directory
+  //   url: uploadsDir,
+  // },
   enableUrlEndpoint: true,
 };
 
