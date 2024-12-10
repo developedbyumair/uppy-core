@@ -1,14 +1,14 @@
-import express from 'express';
-import emojis from './emojis.js';
+import express from "express";
+import emojis from "./emojis.js";
 
 const router = express.Router();
 
-router.get('/', (req, res) => {
+router.get("/", (req, res) => {
   res.json({
-    message: 'API - 👋🌎🌍🌏',
+    message: "API - 👋🌎🌍🌏",
   });
 });
 
-router.use('/emojis', emojis);
+router.use("/emojis", emojis);
 
 export default router;

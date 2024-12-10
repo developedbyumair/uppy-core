@@ -22,7 +22,12 @@
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "helmet": "^8.0.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "@uppy/companion": "^5.1.4",
+    "body-parser": "^1.20.3",
+    "express-session": "^1.18.1",
+    "request": "^2.88.2",
+    "uppy": "^4.7.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
