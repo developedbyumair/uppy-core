@@ -6,72 +6,27 @@
 // });
 
 // import app from "./app.js";
-import express from "express";
-import bodyParser from "body-parser";
 import companion from "@uppy/companion";
-import path from "path";
-import { fileURLToPath } from "url";
 import dotenv from "dotenv";
+import express from "express";
 import fs from "fs";
 import os from "os";
+import path from "path";
 import request from "request";
-import session from "express-session";
+import { configureExpress } from "./config/express";
 
 dotenv.config();
-
-// Fix for __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 // Initialize Express app
 const app = express();
 
-// Middleware for parsing JSON and handling CORS
-app.use(bodyParser.json());
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Authorization, Origin, Content-Type, Accept"
-  );
-  next();
-});
-
-// Parse JSON bodies
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Session configuration
-app.use(
-  session({
-    secret: String(process.env.SESSION_SECRET || "session-secret"),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false, // set to true if using https
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
-  })
-);
-
-// Add basic route for testing
-app.get("/health", (req, res) => {
-  res.json({ status: "OK" });
-});
+configureExpress(app);
 
 // Create a temporary uploads directory
 const uploadsDir = path.join(os.tmpdir(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
-  console.log("Uploads directory created at:", uploadsDir);
 }
-
-console.log(uploadsDir);
 
 // Companion options
 const companionOptions = {
@@ -95,40 +50,9 @@ const companionOptions = {
   filePath: uploadsDir,
   streamingUpload: true,
   allowLocalUrls: true,
-  uploadUrls: {
-    // This should point to the temporary uploads directory
-    url: uploadsDir,
-  },
+  uploadUrls: ["https://uppy-core.vercel.app"],
   enableUrlEndpoint: true,
 };
-
-//   secret: String(process.env.COMPANION_SECRET || "some-secret"),
-//   server: {
-//     host: "uppy-companion-express.vercel.app",
-//     protocol: "https",
-//     // path: "/companion",
-//   },
-//   providerOptions: {
-//     dropbox: {
-//       key: String(process.env.DROPBOX_KEY),
-//       secret: String(process.env.DROPBOX_SECRET),
-//     },
-//     unsplash: {
-//       key: String(process.env.UNSPLASH_KEY),
-//       secret: String(process.env.UNSPLASH_SECRET),
-//     },
-//     url: {
-//       enabled: true,
-//       companion: true,
-//     },
-//   },
-//   filePath: uploadsDir,
-//   debug: true,
-//   corsOrigins: true,
-//   streamingUpload: true,
-//   allowLocalUrls: true,
-//   enableUrlEndpoint: true,
-// };
 
 // Initialize Companion
 const { app: companionApp } = companion.app(companionOptions);
