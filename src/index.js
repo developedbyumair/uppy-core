@@ -93,7 +93,7 @@ const companionOptions = {
     },
     url: {
       enabled: true,
-      companion: true,
+      validUrlPattern: /^https?:\/\/.+/,
     },
   },
   server: {
@@ -192,3 +192,5 @@ app.post("/url/get", (req, res) => {
 const server = app.listen(5000);
 
 companion.socket(server);
+
+export default app;
