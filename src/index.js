@@ -14,7 +14,6 @@ import os from "os";
 import path from "path";
 import request from "request";
 import bodyParser from "body-parser";
-import { errorHandler } from "./middleware/error";
 import session from "express-session";
 
 dotenv.config();
@@ -62,6 +61,21 @@ app.get("/health", (req, res) => {
 });
 
 // Error handling should be last
+const errorHandler = (err, req, res, next) => {
+  console.error("Error details:", {
+    message: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    headers: req.headers,
+  });
+
+  res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    path: req.path,
+  });
+};
+
 app.use(errorHandler);
 
 // Create a temporary uploads directory
