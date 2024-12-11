@@ -8,6 +8,24 @@
   ],
   "routes": [
     {
+      "src": "/companion/.*",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Authorization, Origin, Content-Type, Accept, *",
+        "Access-Control-Allow-Credentials": "true"
+      },
+      "continue": true
+    },
+    {
+      "src": "/upload/.*",
+      "headers": {
+        "Cache-Control": "no-store, no-cache, must-revalidate",
+        "Upload-Status": "completed"
+      },
+      "continue": true
+    },
+    {
       "src": "/(.*)",
       "dest": "src/index.js"
     }

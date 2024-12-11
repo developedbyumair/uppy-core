@@ -33,16 +33,22 @@ app.use(
 
 // Add CORS headers
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Origin, Content-Type, Accept, *');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Authorization, Origin, Content-Type, Accept, *"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
   // Handle preflight
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -73,22 +79,34 @@ app.get("/health", (req, res) => {
 // Add request logging
 app.use((req, res, next) => {
   const start = Date.now();
-  
+
+  // Log request start
+  console.log(
+    `${req.method} ${req.path} started at ${new Date().toISOString()}`
+  );
+
+  // Track upload progress
+  if (req.path.includes("/companion") || req.path.includes("/upload")) {
+    req.on("data", (chunk) => {
+      console.log(`Received ${chunk.length} bytes for ${req.path}`);
+    });
+
+    req.on("end", () => {
+      console.log(`Request body fully received for ${req.path}`);
+    });
+  }
+
   // Add response handlers
-  res.on('finish', () => {
+  res.on("finish", () => {
     const duration = Date.now() - start;
     console.log(`${req.method} ${req.path} completed in ${duration}ms`);
-  });
 
-  // Intercept the response to add upload-specific headers
-  const originalSend = res.send;
-  res.send = function(body) {
-    if (req.path.includes('/upload') || req.path.includes('/companion')) {
-      res.setHeader('Upload-Status', 'completed');
-      res.setHeader('Cache-Control', 'no-store');
+    // For upload endpoints, ensure client gets completion status
+    if (req.path.includes("/companion") || req.path.includes("/upload")) {
+      res.setHeader("Upload-Status", "completed");
+      res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate");
     }
-    return originalSend.call(this, body);
-  };
+  });
 
   next();
 });
@@ -146,28 +164,40 @@ const companionOptions = {
   secret: "676522f38edb8239a1238cc03702dbab",
   debug: true,
   corsOrigins: true,
-  filePath: uploadsDir,
+  filePath: "/tmp", // Use /tmp for Vercel
   streamingUpload: true,
   enableUrlEndpoint: true,
   allowedUrls: [".*"],
   uploadUrls: [".*"],
-  maxFileSize: 100 * 1024 * 1024, // 100MB
-  headers: {
-    'Access-Control-Allow-Headers': '*',
-    'Access-Control-Allow-Origin': '*'
-  }
+  maxFileSize: 100 * 1024 * 1024, // 100MB,
+  clientSocketConnectTimeout: 60000,
+  actionRetryDelays: [0, 1000, 3000, 5000],
+  sendClientErrorMessage: true,
 };
 
 // Initialize Companion
 const { app: companionApp } = companion.app(companionOptions);
 
+// Add upload completion handling
+companionApp.on("upload-complete", (data) => {
+  console.log("Upload completed:", data);
+});
+
 app.use(companionApp);
 
+// Error handler with detailed logging
 app.use((err, req, res, next) => {
-  console.error("Companion Error:", err);
-  res.status(500).json({
-    error: "Companion processing error",
-    details: err.message,
+  console.error("Error occurred:", {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: req.body,
+  });
+
+  res.status(err.status || 500).json({
+    message: err.message,
+    status: "error",
   });
 });
 
@@ -242,7 +272,7 @@ app.post("/url/get", (req, res) => {
 });
 
 // Enable WebSocket support
-const server = app.listen(5000);
+const server = app.listen(5001);
 
 companion.socket(server);
 
