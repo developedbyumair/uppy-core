@@ -100,8 +100,8 @@ const companionOptions = {
       secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
     },
     url: {
-      enabled: false,
-      companion: false,
+      enabled: true,
+      allowedURLs: ['*'], // This will allow all URLs. Adjust this based on your security requirements
       validateUrl: (url) => {
         if (!isValidUrl(url)) {
           throw new Error("Invalid URL");
@@ -136,8 +136,6 @@ const companionOptions = {
 const { app: companionApp } = companion.app(companionOptions);
 
 app.use(companionApp);
-
-// Custom error handling middleware
 
 app.use((err, req, res, next) => {
   console.error("Companion Error:", err);
