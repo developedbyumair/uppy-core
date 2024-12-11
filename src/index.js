@@ -102,8 +102,8 @@ const companionOptions = {
     url: {
       enabled: true,
       companionUrl: "https://uppy-core.vercel.app",
-      allowedOrigins: ["*"],
-      allowedURLs: ["*"],
+      allowedOrigins: [".*"],
+      allowedURLs: [".*"],
     },
   },
   metrics: {
@@ -120,8 +120,8 @@ const companionOptions = {
   filePath: uploadsDir,
   streamingUpload: true,
   enableUrlEndpoint: true,
-  allowedUrls: ["*"],
-  uploadUrls: ["*"],
+  allowedUrls: [".*"],
+  uploadUrls: [".*"]
 };
 
 // Initialize Companion
