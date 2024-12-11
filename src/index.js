@@ -82,7 +82,6 @@ if (!fs.existsSync(uploadsDir)) {
 const isValidUrl = (url) => {
   try {
     const parsedUrl = new URL(url);
-    // Add your specific validation logic here
     return (
       parsedUrl.protocol === "https:" &&
       !parsedUrl.hostname.includes("localhost") &&
@@ -137,6 +136,16 @@ const companionOptions = {
 const { app: companionApp } = companion.app(companionOptions);
 
 app.use(companionApp);
+
+// Custom error handling middleware
+
+app.use((err, req, res, next) => {
+  console.error("Companion Error:", err);
+  res.status(500).json({
+    error: "Companion processing error",
+    details: err.message,
+  });
+});
 
 // Meta endpoint
 app.post("/url/meta", (req, res) => {
