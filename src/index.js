@@ -15,6 +15,7 @@ import path from "path";
 import request from "request";
 import bodyParser from "body-parser";
 import session from "express-session";
+import cors from "cors";
 
 dotenv.config();
 
@@ -22,19 +23,13 @@ dotenv.config();
 const app = express();
 
 // CORS should be first
-const corsMiddleware = (req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", req.headers.origin || "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Authorization, Origin, Content-Type, Accept"
-  );
-  next();
-};
-app.use(corsMiddleware);
+app.use(
+  cors({
+    origin: "*", // Be more specific in production
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
 // Parse JSON bodies
 app.use(bodyParser.json());
