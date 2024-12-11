@@ -91,6 +91,10 @@ const companionOptions = {
       key: "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
       secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
     },
+    url: {
+      enabled: true,
+      companion: true,
+    },
   },
   server: {
     host: "uppy-core.vercel.app",
@@ -98,29 +102,15 @@ const companionOptions = {
   },
   secret: "676522f38edb8239a1238cc03702dbab",
   debug: true,
+  corsOrigins: true,
   filePath: uploadsDir,
+  streamingUpload: true,
+  allowLocalUrls: true,
   uploadUrls: {
+    // This should point to the temporary uploads directory
     url: "https://uppy-core.vercel.app",
-    // Explicitly define allowed URL patterns
-    filter: (url) => {
-      const allowedDomains = [
-        "https://uppy-core.vercel.app",
-        // Add other trusted domains here
-      ];
-
-      try {
-        const parsedUrl = new URL(url);
-        return allowedDomains.some((domain) =>
-          parsedUrl.href.startsWith(domain)
-        );
-      } catch {
-        return false;
-      }
-    },
   },
   enableUrlEndpoint: true,
-  streamingUpload: true,
-  allowLocalUrls: false, // For security, keep this false
 };
 
 // Initialize Companion
