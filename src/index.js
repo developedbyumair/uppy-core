@@ -105,7 +105,7 @@ const companionOptions = {
   corsOrigins: true,
   filePath: uploadsDir,
   streamingUpload: true,
-  allowLocalUrls: true,
+  allowLocalUrls: false,
   uploadUrls: {
     // This should point to the temporary uploads directory
     url: "https://uppy-core.vercel.app",
