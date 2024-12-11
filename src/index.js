@@ -31,6 +31,21 @@ app.use(
   })
 );
 
+// Add CORS headers
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Authorization, Origin, Content-Type, Accept, *');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  
+  // Handle preflight
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
+
 // Parse JSON bodies
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -53,6 +68,29 @@ app.use(
 // Add basic route for testing
 app.get("/health", (req, res) => {
   res.json({ status: "OK" });
+});
+
+// Add request logging
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  // Add response handlers
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.path} completed in ${duration}ms`);
+  });
+
+  // Intercept the response to add upload-specific headers
+  const originalSend = res.send;
+  res.send = function(body) {
+    if (req.path.includes('/upload') || req.path.includes('/companion')) {
+      res.setHeader('Upload-Status', 'completed');
+      res.setHeader('Cache-Control', 'no-store');
+    }
+    return originalSend.call(this, body);
+  };
+
+  next();
 });
 
 // Error handling should be last
@@ -78,19 +116,6 @@ const uploadsDir = path.join(os.tmpdir(), "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
-
-const isValidUrl = (url) => {
-  try {
-    const parsedUrl = new URL(url);
-    return (
-      parsedUrl.protocol === "https:" &&
-      !parsedUrl.hostname.includes("localhost") &&
-      !parsedUrl.hostname.includes("127.0.0.1")
-    );
-  } catch (error) {
-    return false;
-  }
-};
 
 // Companion options
 const companionOptions = {
@@ -127,19 +152,14 @@ const companionOptions = {
   allowedUrls: [".*"],
   uploadUrls: [".*"],
   maxFileSize: 100 * 1024 * 1024, // 100MB
+  headers: {
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Origin': '*'
+  }
 };
 
 // Initialize Companion
 const { app: companionApp } = companion.app(companionOptions);
-
-app.use((req, res, next) => {
-  const start = Date.now();
-  res.on("finish", () => {
-    const duration = Date.now() - start;
-    console.log(`Request to ${req.path} took ${duration}ms`);
-  });
-  next();
-});
 
 app.use(companionApp);
 
