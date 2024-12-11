@@ -13,14 +13,45 @@ import fs from "fs";
 import os from "os";
 import path from "path";
 import request from "request";
-import { configureExpress } from "./config/express";
+import { corsMiddleware } from "./middleware/cors";
+import bodyParser from "body-parser";
+import { errorHandler } from "./middleware/error";
+import session from "express-session";
 
 dotenv.config();
 
 // Initialize Express app
 const app = express();
 
-configureExpress(app);
+// CORS should be first
+app.use(corsMiddleware);
+
+// Parse JSON bodies
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Session configuration
+app.use(
+  // @ts-ignore
+  session({
+    secret: "676522f38edb8239a1238cc03702dbab",
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: true, // set to true if using https
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    },
+  })
+);
+
+// Add basic route for testing
+app.get("/health", (req, res) => {
+  res.json({ status: "OK" });
+});
+
+// Error handling should be last
+app.use(errorHandler);
 
 // Create a temporary uploads directory
 const uploadsDir = path.join(os.tmpdir(), "uploads");
