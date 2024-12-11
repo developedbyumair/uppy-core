@@ -101,7 +101,8 @@ const companionOptions = {
       secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
     },
     url: {
-      enabled: true,
+      enabled: false,
+      companion: false,
       validateUrl: (url) => {
         if (!isValidUrl(url)) {
           throw new Error("Invalid URL");
