@@ -1,28 +1,58 @@
-import express from 'express';
-import companion from '@uppy/companion';
-import bodyParser from 'body-parser';
-import cors from 'cors';
+// const port = process.env.PORT || 5000;
+// app.listen(port, () => {
+//   /* eslint-disable no-console */
+//   console.log(`Listening: http://localhost:${port}`);
+//   /* eslint-enable no-console */
+// });
+
+// import app from "./app.js";
+import companion from "@uppy/companion";
 import dotenv from "dotenv";
+import express from "express";
 import fs from "fs";
-import os from 'os';
-import path from 'path';
+import os from "os";
+import path from "path";
 import request from "request";
+import bodyParser from "body-parser";
 import session from "express-session";
+import cors from "cors";
 
 dotenv.config();
 
+// Initialize Express app
 const app = express();
 
-// Enable CORS with specific options
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS', 'HEAD', 'PATCH', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true,
-  optionsSuccessStatus: 200
-}));
+// CORS should be first
+app.use(
+  cors({
+    origin: "*", // Be more specific in production
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-// Body parser middleware
+// Add CORS headers
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Authorization, Origin, Content-Type, Accept, *"
+  );
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+
+  // Handle preflight
+  if (req.method === "OPTIONS") {
+    return res.status(200).end();
+  }
+
+  next();
+});
+
+// Parse JSON bodies
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -41,106 +71,10 @@ app.use(
   })
 );
 
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'OK' });
+// Add basic route for testing
+app.get("/health", (req, res) => {
+  res.json({ status: "OK" });
 });
-
-// Create temporary directory for uploads
-const uploadsDir = path.join(os.tmpdir(), 'companion-uploads');
-
-const companionOptions = {
-  metrics: {
-    enabled: true,
-    prefix: 'companion'
-  },
-  server: {
-    host: process.env.VERCEL_URL || 'localhost:3000',
-    protocol: process.env.VERCEL_URL ? 'https' : 'http',
-    path: '/companion'
-  },
-  secret: process.env.COMPANION_SECRET || '676522f38edb8239a1238cc03702dbab',
-  debug: true,
-  corsOrigins: true,
-  filePath: process.env.VERCEL_URL ? '/tmp' : uploadsDir,
-  streamingUpload: true,
-  enableUrlEndpoint: true,
-  allowedUrls: ['.*'],
-  uploadUrls: ['.*'],
-  maxFileSize: 100 * 1024 * 1024,
-  redisUrl: process.env.REDIS_URL,
-  periodicPingFrequency: 3000,
-  clientSocketConnectTimeout: 60000,
-  sendClientErrorMessage: true,
-  uploadUrls: ['.*'],
-  logClientVersion: true,
-  providerOptions: {
-    unsplash: {
-      key: "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
-      secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
-    },
-    // url: {
-    //   enabled: true,
-    //   companionUrl: "https://uppy-core.vercel.app",
-    //   allowedOrigins: [".*"],
-    //   allowedURLs: [".*"],
-    // },
-    url: {
-      enabled: false,
-      companion: false,
-    },
-    drive: {
-      key: process.env.COMPANION_DRIVE_KEY,
-      secret: process.env.COMPANION_DRIVE_SECRET
-    }
-  }
-};
-
-// Initialize Companion
-const { app: companionApp } = companion.app(companionOptions);
-
-// Middleware to handle upload status
-app.use((req, res, next) => {
-  // Add custom headers to all responses
-  res.set({
-    'Access-Control-Expose-Headers': 'Upload-Status, Upload-Offset, Upload-Length',
-    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-    'Pragma': 'no-cache',
-    'Expires': '0'
-  });
-
-  // For upload endpoints
-  if (req.path.includes('/companion') || req.path.includes('/upload')) {
-    const originalJson = res.json;
-    const originalEnd = res.end;
-    
-    // Override json method
-    res.json = function(body) {
-      res.set('Upload-Status', 'completed');
-      return originalJson.call(this, body);
-    };
-    
-    // Override end method
-    res.end = function(chunk, encoding) {
-      res.set('Upload-Status', 'completed');
-      return originalEnd.call(this, chunk, encoding);
-    };
-    
-    // Log upload progress
-    req.on('data', (chunk) => {
-      console.log(`Upload progress: ${chunk.length} bytes received`);
-    });
-
-    req.on('end', () => {
-      console.log('Upload request body fully received');
-    });
-  }
-  
-  next();
-});
-
-// Use Companion
-app.use('/companion', companionApp);
 
 // Add request logging
 app.use((req, res, next) => {
@@ -177,18 +111,93 @@ app.use((req, res, next) => {
   next();
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error('Error:', {
+// Error handling should be last
+const errorHandler = (err, req, res, next) => {
+  console.error("Error details:", {
     message: err.message,
     stack: err.stack,
     path: req.path,
-    method: req.method
+    method: req.method,
+    headers: req.headers,
   });
-  
+
   res.status(err.status || 500).json({
+    message: err.message || "Internal Server Error",
+    path: req.path,
+  });
+};
+
+app.use(errorHandler);
+
+// Create a temporary uploads directory
+const uploadsDir = path.join(os.tmpdir(), "uploads");
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+// Companion options
+const companionOptions = {
+  providerOptions: {
+    unsplash: {
+      key: "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
+      secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
+    },
+    // url: {
+    //   enabled: true,
+    //   companionUrl: "https://uppy-core.vercel.app",
+    //   allowedOrigins: [".*"],
+    //   allowedURLs: [".*"],
+    // },
+    url: {
+      enabled: false,
+      companion: false,
+    },
+  },
+  metrics: {
+    enabled: true,
+    prefix: "companion",
+  },
+  server: {
+    host: "uppy-core.vercel.app",
+    protocol: "https",
+  },
+  secret: "676522f38edb8239a1238cc03702dbab",
+  debug: true,
+  corsOrigins: true,
+  filePath: "/tmp", // Use /tmp for Vercel
+  streamingUpload: true,
+  enableUrlEndpoint: true,
+  allowedUrls: [".*"],
+  uploadUrls: [".*"],
+  maxFileSize: 100 * 1024 * 1024, // 100MB,
+  clientSocketConnectTimeout: 60000,
+  actionRetryDelays: [0, 1000, 3000, 5000],
+  sendClientErrorMessage: true,
+};
+
+// Initialize Companion
+const { app: companionApp } = companion.app(companionOptions);
+
+// Add upload completion handling
+companionApp.on("upload-complete", (data) => {
+  console.log("Upload completed:", data);
+});
+
+app.use(companionApp);
+
+// Error handler with detailed logging
+app.use((err, req, res, next) => {
+  console.error("Error occurred:", {
     error: err.message,
-    status: 'error'
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+    body: req.body,
+  });
+
+  res.status(err.status || 500).json({
+    message: err.message,
+    status: "error",
   });
 });
 
