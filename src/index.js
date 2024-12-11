@@ -122,10 +122,11 @@ const companionOptions = {
   debug: true,
   corsOrigins: true,
   filePath: uploadsDir,
-  streamingUpload: false,
+  streamingUpload: true,
   enableUrlEndpoint: true,
   allowedUrls: [".*"],
   uploadUrls: [".*"],
+  maxFileSize: 100 * 1024 * 1024, // 100MB
 };
 
 // Initialize Companion
