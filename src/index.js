@@ -84,6 +84,20 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
+const isValidUrl = (url) => {
+  try {
+    const parsedUrl = new URL(url);
+    // Add your specific validation logic here
+    return (
+      parsedUrl.protocol === "https:" &&
+      !parsedUrl.hostname.includes("localhost") &&
+      !parsedUrl.hostname.includes("127.0.0.1")
+    );
+  } catch (error) {
+    return false;
+  }
+};
+
 // Companion options
 const companionOptions = {
   providerOptions: {
@@ -93,7 +107,12 @@ const companionOptions = {
     },
     url: {
       enabled: true,
-      validUrlPattern: /^https?:\/\/.+/,
+      validateUrl: (url) => {
+        if (!isValidUrl(url)) {
+          throw new Error("Invalid URL");
+        }
+        return true;
+      },
     },
   },
   server: {
@@ -107,12 +126,9 @@ const companionOptions = {
   streamingUpload: true,
   allowLocalUrls: false,
   uploadUrls: {
-    // Explicitly define allowed URLs or use a validation function
     filter: (url) => {
       try {
-        const parsedUrl = new URL(url);
-        // Add your specific domain restrictions here
-        return parsedUrl.protocol === "https:";
+        return isValidUrl(url);
       } catch {
         return false;
       }
