@@ -1,11 +1,11 @@
-import express from "express";
-import companion from "@uppy/companion";
-import bodyParser from "body-parser";
-import cors from "cors";
+import express from 'express';
+import companion from '@uppy/companion';
+import bodyParser from 'body-parser';
+import cors from 'cors';
 import dotenv from "dotenv";
 import fs from "fs";
-import os from "os";
-import path from "path";
+import os from 'os';
+import path from 'path';
 import request from "request";
 import session from "express-session";
 
@@ -14,15 +14,13 @@ dotenv.config();
 const app = express();
 
 // Enable CORS with specific options
-app.use(
-  cors({
-    origin: "*",
-    methods: ["GET", "POST", "OPTIONS", "HEAD", "PATCH", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    credentials: true,
-    optionsSuccessStatus: 200,
-  })
-);
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS', 'HEAD', 'PATCH', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
 
 // Body parser middleware
 app.use(bodyParser.json());
@@ -44,36 +42,37 @@ app.use(
 );
 
 // Health check endpoint
-app.get("/health", (req, res) => {
-  res.json({ status: "OK" });
+app.get('/health', (req, res) => {
+  res.json({ status: 'OK' });
 });
 
 // Create temporary directory for uploads
-const uploadsDir = path.join(os.tmpdir(), "companion-uploads");
+const uploadsDir = path.join(os.tmpdir(), 'companion-uploads');
 
 const companionOptions = {
   metrics: {
     enabled: true,
-    prefix: "companion",
+    prefix: 'companion'
   },
   server: {
-    host: process.env.VERCEL_URL || "localhost:3000",
-    protocol: process.env.VERCEL_URL ? "https" : "http",
-    path: "/companion",
+    host: process.env.VERCEL_URL || 'localhost:3000',
+    protocol: process.env.VERCEL_URL ? 'https' : 'http',
+    path: '/companion'
   },
-  secret: process.env.COMPANION_SECRET || "676522f38edb8239a1238cc03702dbab",
+  secret: process.env.COMPANION_SECRET || '676522f38edb8239a1238cc03702dbab',
   debug: true,
   corsOrigins: true,
-  filePath: process.env.VERCEL_URL ? "/tmp" : uploadsDir,
+  filePath: process.env.VERCEL_URL ? '/tmp' : uploadsDir,
   streamingUpload: true,
   enableUrlEndpoint: true,
-  allowedUrls: [".*"],
-  uploadUrls: [".*"],
+  allowedUrls: ['.*'],
+  uploadUrls: ['.*'],
   maxFileSize: 100 * 1024 * 1024,
   redisUrl: process.env.REDIS_URL,
   periodicPingFrequency: 3000,
   clientSocketConnectTimeout: 60000,
   sendClientErrorMessage: true,
+  uploadUrls: ['.*'],
   logClientVersion: true,
   providerOptions: {
     unsplash: {
@@ -92,9 +91,9 @@ const companionOptions = {
     },
     drive: {
       key: process.env.COMPANION_DRIVE_KEY,
-      secret: process.env.COMPANION_DRIVE_SECRET,
-    },
-  },
+      secret: process.env.COMPANION_DRIVE_SECRET
+    }
+  }
 };
 
 // Initialize Companion
@@ -104,45 +103,44 @@ const { app: companionApp } = companion.app(companionOptions);
 app.use((req, res, next) => {
   // Add custom headers to all responses
   res.set({
-    "Access-Control-Expose-Headers":
-      "Upload-Status, Upload-Offset, Upload-Length",
-    "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate",
-    Pragma: "no-cache",
-    Expires: "0",
+    'Access-Control-Expose-Headers': 'Upload-Status, Upload-Offset, Upload-Length',
+    'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0'
   });
 
   // For upload endpoints
-  if (req.path.includes("/companion") || req.path.includes("/upload")) {
+  if (req.path.includes('/companion') || req.path.includes('/upload')) {
     const originalJson = res.json;
     const originalEnd = res.end;
-
+    
     // Override json method
-    res.json = function (body) {
-      res.set("Upload-Status", "completed");
+    res.json = function(body) {
+      res.set('Upload-Status', 'completed');
       return originalJson.call(this, body);
     };
-
+    
     // Override end method
-    res.end = function (chunk, encoding) {
-      res.set("Upload-Status", "completed");
+    res.end = function(chunk, encoding) {
+      res.set('Upload-Status', 'completed');
       return originalEnd.call(this, chunk, encoding);
     };
-
+    
     // Log upload progress
-    req.on("data", (chunk) => {
+    req.on('data', (chunk) => {
       console.log(`Upload progress: ${chunk.length} bytes received`);
     });
 
-    req.on("end", () => {
-      console.log("Upload request body fully received");
+    req.on('end', () => {
+      console.log('Upload request body fully received');
     });
   }
-
+  
   next();
 });
 
 // Use Companion
-app.use("/companion", companionApp);
+app.use('/companion', companionApp);
 
 // Add request logging
 app.use((req, res, next) => {
@@ -181,16 +179,16 @@ app.use((req, res, next) => {
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error("Error:", {
+  console.error('Error:', {
     message: err.message,
     stack: err.stack,
     path: req.path,
-    method: req.method,
+    method: req.method
   });
-
+  
   res.status(err.status || 500).json({
     error: err.message,
-    status: "error",
+    status: 'error'
   });
 });
 
