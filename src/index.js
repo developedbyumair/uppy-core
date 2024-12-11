@@ -107,8 +107,16 @@ const companionOptions = {
   streamingUpload: true,
   allowLocalUrls: false,
   uploadUrls: {
-    // This should point to the temporary uploads directory
-    url: "https://uppy-core.vercel.app",
+    // Explicitly define allowed URLs or use a validation function
+    filter: (url) => {
+      try {
+        const parsedUrl = new URL(url);
+        // Add your specific domain restrictions here
+        return parsedUrl.protocol === "https:";
+      } catch {
+        return false;
+      }
+    },
   },
   enableUrlEndpoint: true,
 };
