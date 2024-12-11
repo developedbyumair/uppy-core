@@ -54,20 +54,15 @@ app.use((req, res, next) => {
 
 // Parse JSON bodies
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({ extended: false }));
 
 // Session configuration
 app.use(
   // @ts-ignore
   session({
     secret: "676522f38edb8239a1238cc03702dbab",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: true, // set to true if using https
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
+    resave: true,
+    saveUninitialized: true,
   })
 );
 
@@ -270,7 +265,10 @@ app.post("/url/get", (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-
+app.get("/", (req, res) => {
+  res.setHeader("Content-Type", "text/plain");
+  res.send("Hello there, here's a response from companion");
+});
 // Enable WebSocket support
 const server = app.listen(5001);
 
