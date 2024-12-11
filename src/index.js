@@ -99,6 +99,16 @@ const companionOptions = {
       key: "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
       secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
     },
+    url: {
+      enabled: true,
+      companionUrl: "https://uppy-core.vercel.app",
+      allowedOrigins: ["*"],
+      allowedURLs: ["*"],
+    },
+  },
+  metrics: {
+    enabled: true,
+    prefix: "companion",
   },
   server: {
     host: "uppy-core.vercel.app",
@@ -110,8 +120,8 @@ const companionOptions = {
   filePath: uploadsDir,
   streamingUpload: true,
   enableUrlEndpoint: true,
-  allowedUrls: ['*'],
-  uploadUrls: ['*'],
+  allowedUrls: ["*"],
+  uploadUrls: ["*"],
 };
 
 // Initialize Companion
