@@ -27,8 +27,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "src/index.js",
-      "timeout": 900
+      "dest": "src/index.js"
     }
   ],
   "env": {
