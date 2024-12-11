@@ -99,16 +99,6 @@ const companionOptions = {
       key: "Wg-X31Zno-d_QVkFifC96czVe1hhUUAfTEybwNq7e2E",
       secret: "E00NcA5wx8RfwZFwgBfgtl4HZpRs0YsQ66OsTIuKTJ4",
     },
-    url: {
-      enabled: true,
-      allowedURLs: ['*'], // This will allow all URLs. Adjust this based on your security requirements
-      validateUrl: (url) => {
-        if (!isValidUrl(url)) {
-          throw new Error("Invalid URL");
-        }
-        return true;
-      },
-    },
   },
   server: {
     host: "uppy-core.vercel.app",
@@ -119,17 +109,9 @@ const companionOptions = {
   corsOrigins: true,
   filePath: uploadsDir,
   streamingUpload: true,
-  allowLocalUrls: false,
-  uploadUrls: {
-    filter: (url) => {
-      try {
-        return isValidUrl(url);
-      } catch {
-        return false;
-      }
-    },
-  },
   enableUrlEndpoint: true,
+  allowedUrls: ['*'],
+  uploadUrls: ['*'],
 };
 
 // Initialize Companion
