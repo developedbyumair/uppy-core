@@ -271,8 +271,12 @@ app.get("/", async (req, res) => {
   const response = await fetch("https://example.com");
   const html = await response.text();
   const $ = load(html);
+  const title = $("h1").text();
+  const links = $("a")
+    .map((i, el) => $(el).attr("href"))
+    .get();
   console.log("html", html);
-  res.send("Hello there, here's a response from companion");
+  res.send(`${title} ${links}`);
 });
 // Enable WebSocket support
 const server = app.listen(5001);
