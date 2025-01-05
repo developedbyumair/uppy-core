@@ -28,7 +28,8 @@
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
     "request": "^2.88.2",
-    "uppy": "^4.7.0"
+    "uppy": "^4.7.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
