@@ -16,6 +16,7 @@ import request from "request";
 import bodyParser from "body-parser";
 import session from "express-session";
 import cors from "cors";
+import cheerio from "cheerio";
 
 dotenv.config();
 
@@ -265,8 +266,11 @@ app.post("/url/get", (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
-app.get("/", (req, res) => {
+app.get("/", async (req, res) => {
   res.setHeader("Content-Type", "text/plain");
+  const response = await fetch("https://example.com");
+  const html = await response.text();
+  console.log("html", html);
   res.send("Hello there, here's a response from companion");
 });
 // Enable WebSocket support
