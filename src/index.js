@@ -16,7 +16,7 @@ import request from "request";
 import bodyParser from "body-parser";
 import session from "express-session";
 import cors from "cors";
-import cheerio from "cheerio";
+import { load } from "cheerio";
 
 dotenv.config();
 
@@ -270,6 +270,7 @@ app.get("/", async (req, res) => {
   res.setHeader("Content-Type", "text/plain");
   const response = await fetch("https://example.com");
   const html = await response.text();
+  const $ = load(html);
   console.log("html", html);
   res.send("Hello there, here's a response from companion");
 });
