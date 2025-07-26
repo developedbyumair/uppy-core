@@ -1,33 +1,53 @@
 {
   "version": 2,
-  "builds": [
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node"
+    }
+  },
+  "rewrites": [
     {
-      "src": "src/index.js",
-      "use": "@vercel/node"
+      "source": "/companion/(.*)",
+      "destination": "/api/companion"
+    },
+    {
+      "source": "/url/(.*)",
+      "destination": "/api/url"
+    },
+    {
+      "source": "/api/linkedin",
+      "destination": "/api/linkedin"
+    },
+    {
+      "source": "/api/x",
+      "destination": "/api/x"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index"
     }
   ],
-  "routes": [
+  "headers": [
     {
-      "src": "/url/get/.*",
-      "headers": {
-        "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers": "Authorization, Origin, Content-Type, Accept, *",
-        "Access-Control-Allow-Credentials": "true"
-      },
-      "continue": true
-    },
-    {
-      "src": "/url/get/.*",
-      "headers": {
-        "Cache-Control": "no-store, no-cache, must-revalidate",
-        "Upload-Status": "completed"
-      },
-      "continue": true
-    },
-    {
-      "src": "/(.*)",
-      "dest": "src/index.js"
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Authorization, Origin, Content-Type, Accept"
+        }
+      ]
     }
   ],
   "env": {

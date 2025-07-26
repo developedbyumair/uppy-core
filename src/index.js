@@ -18,41 +18,23 @@ import session from "express-session";
 import cors from "cors";
 import { load } from "cheerio";
 import fetch from "node-fetch";
+// Local HTML scraper (no API keys)
+import { fetchTweetsHeadless } from "./lib/headless.js";
 
 dotenv.config();
 
 // Initialize Express app
 const app = express();
 
-// CORS should be first
+// CORS configuration for serverless
 app.use(
   cors({
-    origin: "*", // Be more specific in production
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true
   })
 );
-
-// Add CORS headers
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Authorization, Origin, Content-Type, Accept, *"
-  );
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-
-  // Handle preflight
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  next();
-});
 
 // Parse JSON bodies
 app.use(bodyParser.json());
@@ -310,6 +292,8 @@ app.post("/api/linkedin", async (req, res) => {
     const $ = load(html);
 
     // Extract post data
+    // Explicitly type `images` to satisfy the linter that expects a concrete array type
+    /** @type {{ text: string; images: string[]; author: string; date: string }} */
     const postData = {
       text: "",
       images: [],
@@ -368,10 +352,185 @@ app.post("/api/linkedin", async (req, res) => {
   }
 });
 
-// Enable WebSocket support
-const server = app.listen(5001);
+// ------------------------------------------------------------------------------------------------------------------
+//  X (Twitter) scraper
+// ------------------------------------------------------------------------------------------------------------------
 
-companion.socket(server);
+// This endpoint expects a JSON body: { url: "https://twitter.com/<username>" }
+// It returns the latest 100 tweets for that user (threads & regular tweets) together with any attached images/videos.
+// The implementation relies on the Twitter API v2, so make sure to set the TWITTER_BEARER_TOKEN environment variable.
+
+app.post("/api/x", async (req, res) => {
+  try {
+    const { url } = req.body;
+
+    if (!url) {
+      return res
+        .status(400)
+        .json({ message: "Twitter profile URL is required" });
+    }
+
+    // Extract the username from the provided URL
+    let username = "";
+    try {
+      const parsed = new URL(url);
+      username = parsed.pathname.split("/").filter(Boolean)[0] || "";
+    } catch {
+      return res.status(400).json({ message: "Invalid URL supplied" });
+    }
+
+    if (!username) {
+      return res
+        .status(400)
+        .json({ message: "Could not extract username from the URL" });
+    }
+
+    const bearerToken = process.env.TWITTER_BEARER_TOKEN;
+
+    // If no bearer token, try the public syndication endpoint first, then fall back to Nitter.
+    if (!bearerToken) {
+      // try {
+      //   const posts = await fetchTweetsSyndication(username, 100);
+      //   if (posts.length) {
+      //     return res.json({ success: true, user: username, posts });
+      //   }
+      //   console.warn(
+      //     "Syndication endpoint returned no posts – falling back to Nitter"
+      //   );
+      // } catch (syncErr) {
+      //   console.warn(
+      //     "Syndication endpoint failed, falling back to Nitter:",
+      //     syncErr.message || syncErr
+      //   );
+      // }
+
+      // try {
+      //   const posts = await fetchTweets(username, 100);
+      //   if (posts.length) {
+      //     return res.json({ success: true, user: username, posts });
+      //   }
+      //   console.warn("Nitter returned no posts – falling back to headless");
+      // } catch (scrapeError) {
+      //   console.warn(
+      //     "Nitter scrape failed, trying headless:",
+      //     scrapeError.message || scrapeError
+      //   );
+      // }
+
+      try {
+        const posts = await fetchTweetsHeadless(username, 50);
+        return res.json({ success: true, user: username, posts });
+      } catch (headlessErr) {
+        console.error("Headless scrape failed:", headlessErr);
+        return res.status(500).json({
+          message:
+            "All scraping strategies failed (syndication, Nitter, headless)",
+          error:
+            headlessErr instanceof Error
+              ? headlessErr.message
+              : "Unknown error",
+        });
+      }
+    }
+
+    const headers = {
+      Authorization: `Bearer ${bearerToken}`,
+      "User-Agent":
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    };
+
+    // 1. Resolve the user ID
+    const userResp = await fetch(
+      `https://api.twitter.com/2/users/by/username/${username}?user.fields=id`,
+      { headers }
+    );
+
+    if (!userResp.ok) {
+      /** @type {any} */
+      const errData = await userResp.json().catch(() => ({}));
+      throw new Error(
+        `Twitter user lookup failed: ${userResp.statusText} ${
+          errData.title || ""
+        }`
+      );
+    }
+
+    /** @type {any} */
+    const userJson = await userResp.json();
+    const userId = userJson?.data?.id;
+    if (!userId) {
+      return res.status(404).json({ message: "User not found on Twitter" });
+    }
+
+    // 2. Fetch the user's tweets (max 100)
+    const tweetsResp = await fetch(
+      `https://api.twitter.com/2/users/${userId}/tweets?max_results=100&tweet.fields=created_at,attachments,conversation_id&expansions=attachments.media_keys&media.fields=url,preview_image_url,type`,
+      { headers }
+    );
+
+    if (!tweetsResp.ok) {
+      /** @type {any} */
+      const errData = await tweetsResp.json().catch(() => ({}));
+      throw new Error(
+        `Tweets fetch failed: ${tweetsResp.statusText} ${errData.title || ""}`
+      );
+    }
+
+    /** @type {any} */
+    const timeline = await tweetsResp.json();
+
+    // Build a quick lookup for media (photos, videos, gifs)
+    /** @type {Record<string, any>} */
+    const mediaMap = {};
+    if (timeline.includes?.media) {
+      for (const media of timeline.includes.media) {
+        mediaMap[media.media_key] = media;
+      }
+    }
+
+    // Transform tweets into the shape we want
+    const posts = (timeline.data || []).map((tweet) => {
+      /** @type {string[]} */ const images = [];
+      /** @type {string[]} */ const videos = [];
+
+      if (tweet.attachments?.media_keys) {
+        tweet.attachments.media_keys.forEach((key) => {
+          const media = mediaMap[key];
+          if (!media) return;
+
+          if (media.type === "photo" && media.url) {
+            images.push(media.url);
+          } else if (
+            (media.type === "video" || media.type === "animated_gif") &&
+            media.preview_image_url
+          ) {
+            videos.push(media.preview_image_url);
+          }
+        });
+      }
+
+      return {
+        id: tweet.id,
+        text: tweet.text,
+        images,
+        videos,
+        date: tweet.created_at,
+        conversation_id: tweet.conversation_id,
+      };
+    });
+
+    return res.json({ success: true, user: username, posts });
+  } catch (error) {
+    console.error("Error scraping tweets:", error);
+    return res.status(500).json({
+      message: "Failed to fetch tweets",
+      error: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+// Note: WebSocket support removed for Vercel serverless deployment
+// WebSockets are not supported in Vercel serverless functions
 
 // Add this before your route handlers
 app.use(async (req, res, next) => {
