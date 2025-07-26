@@ -32,7 +32,7 @@ app.use(
     origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true
+    credentials: true,
   })
 );
 
@@ -418,7 +418,7 @@ app.post("/api/x", async (req, res) => {
       // }
 
       try {
-        const posts = await fetchTweetsHeadless(username, 50);
+        const posts = await fetchTweetsHeadless(username, 10);
         return res.json({ success: true, user: username, posts });
       } catch (headlessErr) {
         console.error("Headless scrape failed:", headlessErr);
