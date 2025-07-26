@@ -1,5 +1,7 @@
 // @ts-nocheck
-import puppeteer from "puppeteer";
+import chromium from '@sparticuz/chromium-min';
+import puppeteer, { Browser as PuppeteerBrowser } from 'puppeteer';
+import puppeteerCore, { Browser as PuppeteerCoreBrowser } from 'puppeteer-core';
 
 /**
  * Headless-browser fallback. Launches Chromium, opens the user profile on X,
@@ -15,16 +17,76 @@ export async function fetchTweetsHeadless(username, limit = 10) {
   if (!username) throw new Error("username required");
   limit = Math.max(1, Math.min(limit, 50));
 
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-    ],
-  });
+  let browser = null;
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
-  const page = await browser.newPage();
+  try {
+    if (isDevelopment) {
+      // Use regular Puppeteer for local development
+      console.log('Launching Puppeteer for development');
+      browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      });
+    } else {
+      // Use Chromium-min for serverless environment (Vercel)
+      console.log('Launching Puppeteer Core with Chromium-min for production');
+
+      try {
+        // Use the chromium executable path with explicit download URL
+        const executablePath = await chromium.executablePath(
+          'https://github.com/Sparticuz/chromium/releases/download/v131.0.1/chromium-v131.0.1-pack.tar'
+        );
+
+        console.log('Using chromium executable with explicit URL:', executablePath);
+
+        browser = await puppeteerCore.launch({
+          executablePath,
+          args: [...chromium.args, '--no-sandbox'],
+          headless: chromium.headless,
+          defaultViewport: chromium.defaultViewport,
+        });
+
+        console.log('Browser launched successfully with Chromium-min');
+      } catch (chromiumError) {
+        console.error('Failed to launch browser with explicit URL, trying with /tmp path:', chromiumError);
+
+        // First fallback - try with /tmp path
+        try {
+          const tmpExecutablePath = await chromium.executablePath('/tmp');
+          console.log('Using chromium executable with /tmp path:', tmpExecutablePath);
+
+          browser = await puppeteerCore.launch({
+            executablePath: tmpExecutablePath,
+            args: [...chromium.args, '--no-sandbox'],
+            headless: chromium.headless,
+            defaultViewport: chromium.defaultViewport,
+          });
+
+          console.log('Browser launched successfully with /tmp path');
+        } catch (tmpError) {
+          console.error('Failed to launch browser with /tmp path, trying environment variable:', tmpError);
+
+          // Second fallback - try with environment variable or default path
+          try {
+            browser = await puppeteerCore.launch({
+              executablePath:
+                process.env.PUPPETEER_EXECUTABLE_PATH ||
+                (await chromium.executablePath()),
+              args: [...chromium.args, '--no-sandbox'],
+              headless: true,
+            });
+
+            console.log('Browser launched successfully with environment variable');
+          } catch (fallbackError) {
+            console.error('Failed to launch browser with all fallback approaches:', fallbackError);
+            throw fallbackError;
+          }
+        }
+      }
+    }
+
+    const page = await browser.newPage();
   await page.setUserAgent(
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
@@ -106,6 +168,19 @@ export async function fetchTweetsHeadless(username, limit = 10) {
     attempts += 1;
   }
 
-  await browser.close();
-  return Object.values(collected).slice(0, limit);
+    return Object.values(collected).slice(0, limit);
+  } catch (error) {
+    console.error('Error in fetchTweetsHeadless:', error);
+    throw error;
+  } finally {
+    // Always close browser in finally block
+    if (browser) {
+      try {
+        await browser.close();
+        console.log('Browser closed successfully');
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
+  }
 }

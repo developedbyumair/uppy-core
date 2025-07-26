@@ -18,6 +18,7 @@
   },
   "license": "MIT",
   "dependencies": {
+    "@sparticuz/chromium-min": "^138.0.2",
     "@uppy/companion": "^5.1.4",
     "body-parser": "^1.20.3",
     "cheerio": "^1.0.0",
@@ -27,10 +28,11 @@
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "morgan": "^1.10.0",
-    "request": "^2.88.2",
-    "uppy": "^4.7.0",
     "node-fetch": "^3.3.2",
-    "puppeteer": "^22.7.0"
+    "puppeteer": "^22.7.0",
+    "puppeteer-core": "^24.15.0",
+    "request": "^2.88.2",
+    "uppy": "^4.7.0"
   },
   "devDependencies": {
     "eslint": "^8.57.0",
