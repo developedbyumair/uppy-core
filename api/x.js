@@ -1,5 +1,60 @@
 import fetch from "node-fetch";
-import { fetchTweetsHeadless } from "../src/lib/headless.js";
+import { load } from "cheerio";
+
+// Simple fallback scraping without browser automation
+async function fetchTweetsSimple(username, limit = 10) {
+  const url = `https://nitter.net/${username}`;
+  
+  try {
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+      },
+      timeout: 10000
+    });
+
+    if (!response.ok) {
+      throw new Error(`Nitter request failed: ${response.status}`);
+    }
+
+    const html = await response.text();
+    const $ = load(html);
+    const posts = [];
+
+    $('.timeline-item').each((index, element) => {
+      if (posts.length >= limit) return false;
+      
+      const $tweet = $(element);
+      const text = $tweet.find('.tweet-content').text().trim();
+      const date = $tweet.find('.tweet-date a').attr('title') || '';
+      const id = $tweet.find('.tweet-link').attr('href')?.split('/').pop() || `post_${index}`;
+      
+      const images = [];
+      $tweet.find('.attachment.image img').each((_, img) => {
+        const src = $(img).attr('src');
+        if (src) images.push(src.startsWith('http') ? src : `https://nitter.net${src}`);
+      });
+
+      if (text) {
+        posts.push({
+          id,
+          text,
+          date,
+          images,
+          videos: [],
+          conversation_id: id
+        });
+      }
+    });
+
+    return posts;
+  } catch (error) {
+    // If Nitter fails, return a basic response indicating API key needed
+    throw new Error(`Scraping not available without API key: ${error.message}`);
+  }
+}
 
 export default async function handler(req, res) {
   // Set CORS headers
@@ -43,19 +98,17 @@ export default async function handler(req, res) {
 
     const bearerToken = process.env.TWITTER_BEARER_TOKEN;
 
-    // If no bearer token, use headless scraping
+    // If no bearer token, try simple HTML scraping
     if (!bearerToken) {
       try {
-        const posts = await fetchTweetsHeadless(username, 50);
+        const posts = await fetchTweetsSimple(username, 10);
         return res.json({ success: true, user: username, posts });
-      } catch (headlessErr) {
-        console.error("Headless scrape failed:", headlessErr);
+      } catch (scrapeErr) {
+        console.error("Simple scrape failed:", scrapeErr);
         return res.status(500).json({
-          message: "Scraping failed",
-          error:
-            headlessErr instanceof Error
-              ? headlessErr.message
-              : "Unknown error",
+          message: "Twitter API key required for full functionality. Simple scraping failed.",
+          error: "Please add TWITTER_BEARER_TOKEN environment variable",
+          fallback_attempted: true
         });
       }
     }

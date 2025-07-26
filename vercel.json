@@ -47,5 +47,13 @@
   ],
   "env": {
     "NODE_ENV": "production"
+  },
+  "functions": {
+    "api/x.js": {
+      "maxDuration": 30
+    },
+    "api/linkedin.js": {
+      "maxDuration": 30  
+    }
   }
 }
