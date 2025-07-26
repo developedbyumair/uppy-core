@@ -362,7 +362,7 @@ app.post("/api/linkedin", async (req, res) => {
 
 app.post("/api/x", async (req, res) => {
   try {
-    const { url } = req.body;
+    const { url, limit = 50 } = req.body;
 
     if (!url) {
       return res
@@ -418,7 +418,7 @@ app.post("/api/x", async (req, res) => {
       // }
 
       try {
-        const posts = await fetchTweetsHeadless(username, 10);
+        const posts = await fetchTweetsHeadless(username, limit);
         return res.json({ success: true, user: username, posts });
       } catch (headlessErr) {
         console.error("Headless scrape failed:", headlessErr);
