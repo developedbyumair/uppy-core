@@ -4,8 +4,14 @@ import { fetchTweetsHeadless } from "../src/lib/headless.js";
 export default async function handler(req, res) {
   // Set CORS headers
   res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Authorization, Origin, Content-Type, Accept");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Authorization, Origin, Content-Type, Accept"
+  );
   res.setHeader("Access-Control-Allow-Credentials", "true");
 
   // Handle preflight
@@ -18,7 +24,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { url } = req.body;
+    const { url, limit = 50 } = req.body;
 
     if (!url) {
       return res
@@ -46,7 +52,7 @@ export default async function handler(req, res) {
     // If no bearer token, use headless scraping with chromium-min
     if (!bearerToken) {
       try {
-        const posts = await fetchTweetsHeadless(username, 50);
+        const posts = await fetchTweetsHeadless(username, limit);
         return res.json({ success: true, user: username, posts });
       } catch (headlessErr) {
         console.error("Headless scrape failed:", headlessErr);
